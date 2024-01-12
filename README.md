@@ -22,4 +22,6 @@ python expression_finder.py
 
 ## Однонаправленное дерево
 
-[условие](./однонаправленное%20дерево.jpg)
+[условие](unidirectional_tree.jpg)
+
+[решение](main.go)
