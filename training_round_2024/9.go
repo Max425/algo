@@ -34,11 +34,11 @@ func isMinCorner(matrix *[]string, row, col int) bool {
 	return false
 }
 
-func Count(matrix *[]string, result *[]int, parent *Rectangle, isVisited *map[Point]bool) {
+func Count(matrix *[]string, result *[]int, parent *Rectangle, isVisited *map[Point]*Rectangle) {
 	for row := parent.Min.x; row < parent.Max.x; row++ {
 		for col := parent.Min.y; col < parent.Max.y; col++ {
 			p := Point{row, col}
-			_, ok := (*isVisited)[p]
+			rectangle, ok := (*isVisited)[p]
 			if !ok && isMinCorner(matrix, row, col) {
 				x, y := row, col
 				for y+1 < parent.Max.y && string((*matrix)[x][y+1]) != "." {
@@ -48,10 +48,21 @@ func Count(matrix *[]string, result *[]int, parent *Rectangle, isVisited *map[Po
 					x++
 				}
 				r := &Rectangle{Point{row + 2, col + 2}, Point{x - 1, y - 1}, parent.Level + 1}
+
+				x1 := row
+				for x1+1 < parent.Max.x && string((*matrix)[x1+1][col]) != "." {
+					x1++
+					point := Point{x1, col}
+					(*isVisited)[point] = r
+				}
+
 				*result = append(*result, r.Level)
 				col = y
-				(*isVisited)[p] = true
+				(*isVisited)[p] = r
 				Count(matrix, result, r, isVisited)
+			}
+			if ok {
+				col = rectangle.Max.y
 			}
 		}
 	}
@@ -75,7 +86,7 @@ func main() {
 			matrix = append(matrix, strings.TrimSpace(tmp))
 		}
 		var result []int
-		isVisited := make(map[Point]bool)
+		isVisited := make(map[Point]*Rectangle)
 		rectangle := &Rectangle{Point{0, 0}, Point{n, m}, -1}
 		Count(&matrix, &result, rectangle, &isVisited)
 
