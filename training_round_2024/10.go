@@ -14,26 +14,38 @@ type Comment struct {
 	Child        []*Comment
 }
 
-func PrintTree(root *Comment, out *bufio.Writer, level int, lastChild bool) {
-	for i := 0; i < level; i++ {
-		if lastChild {
-			out.WriteString(" ")
-		} else {
-			out.WriteString("|")
-		}
-		if i+1 < level {
+func PrintTree(root *Comment, out *bufio.Writer, delim []string, last bool) {
+	for i, sep := range delim {
+		out.WriteString(sep)
+		if i < len(delim)-1 {
 			out.WriteString("  ")
 		}
 	}
-	if level > 0 {
-		out.WriteString("|--")
+	if len(delim) > 0 {
+		out.WriteString("\n")
+	}
+	for i, sep := range delim {
+		out.WriteString(sep)
+		if i < len(delim)-1 {
+			out.WriteString("  ")
+		}
+	}
+
+	if len(delim) > 0 {
+		out.WriteString("--")
 	}
 	out.WriteString(root.Message + "\n")
+
 	sort.Slice(root.Child, func(i, j int) bool {
 		return root.Child[i].ID < root.Child[j].ID
 	})
+	if last {
+		delim[len(delim)-1] = " "
+	}
+	delim = append(delim, "|")
+
 	for i, node := range root.Child {
-		PrintTree(node, out, level+1, i == len(root.Child)-1)
+		PrintTree(node, out, delim, i == len(root.Child)-1)
 	}
 }
 
@@ -52,10 +64,11 @@ func main() {
 		counts, _ := strconv.Atoi(strings.TrimSpace(tmp))
 		for j := 0; j < counts; j++ {
 			tmp, _ = in.ReadString('\n')
-			line := strings.Split(strings.TrimSpace(tmp), " ")
+			tmp = tmp[:len(tmp)-1]
+			line := strings.Split(tmp, " ")
 			id, _ := strconv.Atoi(line[0])
 			ParentId, _ := strconv.Atoi(line[1])
-			c := &Comment{id, ParentId, strings.TrimSpace(strings.Join(line[2:], " ")), []*Comment{}}
+			c := &Comment{id, ParentId, strings.Join(line[2:], " "), []*Comment{}}
 			comments = append(comments, c)
 			commentMap[id] = c
 		}
@@ -67,8 +80,12 @@ func main() {
 				commentMap[comment.ParentID].Child = append(commentMap[comment.ParentID].Child, comment)
 			}
 		}
-		for inx, node := range root {
-			PrintTree(node, out, 0, inx == len(root)-1)
+		sort.Slice(root, func(i, j int) bool {
+			return root[i].ID < root[j].ID
+		})
+		var delim []string
+		for _, node := range root {
+			PrintTree(node, out, delim, false)
 			out.WriteString("\n")
 		}
 	}
