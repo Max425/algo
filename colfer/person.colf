@@ -1,0 +1,6 @@
+package main
+
+type Person struct {
+    Name  text
+    Age   uint32
+}
