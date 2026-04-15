@@ -1,70 +1,70 @@
 package out
-// 
-// import (
-// 	"context"
-// 	"math"
-// 	"sync"
-// )
 
-// type Request interface{}
+import (
+	"context"
+	"math"
+	"sync"
+)
 
-// type Response interface{}
+type Request interface{}
 
-// type Backend interface {
-// 	Invoke(ctx context.Context, req Request) (Response, error)
-// }
+type Response interface{}
 
-// var _ Backend = &BackendImpl{}
+type Backend interface {
+	Invoke(ctx context.Context, req Request) (Response, error)
+}
 
-// // addr содержит ip:port конкретного экземпляра
-// func NewBackend(addr string) *BackendImpl
+var _ Backend = &BackendImpl{}
 
-// type Balancer struct {
-// 	backends []*BackendWorker
-// 	counters []int
-// 	mu       sync.RWMutex
-// }
+// addr содержит ip:port конкретного экземпляра
+func NewBackend(addr string) *BackendImpl
 
-// type BackendWorker struct {
-// 	backend *BackendImpl
-// }
+type Balancer struct {
+	backends []*BackendWorker
+	counters []int
+	mu       sync.RWMutex
+}
 
-// var _ Backend = &Balancer{}
+type BackendWorker struct {
+	backend *BackendImpl
+}
 
-// // addrs содержат адреса всех балансируемых экземпляров
-// func NewBalancer(addrs []string) *Balancer {
-// 	b := &Balancer{
-// 		backends: make([]*BackendWorker, 0, len(addrs)),
-// 		counters: make([]int, len(addrs)),
-// 	}
-// 	for _, addr := range addrs {
-// 		b.backends = append(b.backends, &BackendWorker{
-// 			backend: NewBackend(addr),
-// 		})
-// 	}
-// 	return b
-// }
+var _ Backend = &Balancer{}
 
-// func (b *Balancer) Invoke(ctx context.Context, req Request) (Response, error) {
-// 	var minBackIndex int
-// 	minCount := math.MaxInt64
+// addrs содержат адреса всех балансируемых экземпляров
+func NewBalancer(addrs []string) *Balancer {
+	b := &Balancer{
+		backends: make([]*BackendWorker, 0, len(addrs)),
+		counters: make([]int, len(addrs)),
+	}
+	for _, addr := range addrs {
+		b.backends = append(b.backends, &BackendWorker{
+			backend: NewBackend(addr),
+		})
+	}
+	return b
+}
 
-// 	b.mu.Lock()
-// 	for i := range b.backends {
-// 		count := b.counters[i]
-// 		if count < minCount {
-// 			minCount = count
-// 			minBackIndex = i
-// 		}
-// 	}
-// 	b.counters[minBackIndex]++
-// 	b.mu.Unlock()
+func (b *Balancer) Invoke(ctx context.Context, req Request) (Response, error) {
+	var minBackIndex int
+	minCount := math.MaxInt64
 
-// 	req, err := b.backends[minBackIndex].backend.Invoke(ctx, req)
+	b.mu.Lock()
+	for i := range b.backends {
+		count := b.counters[i]
+		if count < minCount {
+			minCount = count
+			minBackIndex = i
+		}
+	}
+	b.counters[minBackIndex]++
+	b.mu.Unlock()
 
-// 	b.mu.Lock()
-// 	b.counters[minBackIndex]--
-// 	b.mu.Unlock()
+	req, err := b.backends[minBackIndex].backend.Invoke(ctx, req)
 
-// 	return req, err
-// }
+	b.mu.Lock()
+	b.counters[minBackIndex]--
+	b.mu.Unlock()
+
+	return req, err
+}
